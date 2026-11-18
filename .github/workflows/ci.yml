@@ -82,9 +82,9 @@ jobs:
           # Pre-made empty client config so the CLI never generates (and prints) a key.
           export SUI_CONFIG_DIR="$RUNNER_TEMP/sui-config"
           mkdir -p "$SUI_CONFIG_DIR" && echo '[]' > "$SUI_CONFIG_DIR/sui.keystore"
-          printf 'keystore:\n  File: %s/sui.keystore\nexternal_keys: ~\nenvs:\n  - alias: local\n    rpc: http://127.0.0.1:9000\n    ws: ~\n    basic_auth: ~\nactive_env: local\nactive_address: ~\n' "$SUI_CONFIG_DIR" > "$SUI_CONFIG_DIR/client.yaml"
-          bin/sui move test --path packages/seuaro_payments
-          bin/sui move test --path packages/seuaro_compute
+          printf 'keystore:\n  File: %s/sui.keystore\nexternal_keys: ~\nenvs:\n  - alias: testnet\n    rpc: http://127.0.0.1:9000\n    ws: ~\n    basic_auth: ~\nactive_env: testnet\nactive_address: ~\n' "$SUI_CONFIG_DIR" > "$SUI_CONFIG_DIR/client.yaml"
+          bin/sui move test -e testnet --path packages/seuaro_payments
+          bin/sui move test -e testnet --path packages/seuaro_compute
       - uses: actions/upload-artifact@v4
         with:
           name: bin
