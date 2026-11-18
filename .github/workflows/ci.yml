@@ -31,6 +31,13 @@ jobs:
           python3 -I -m py_compile scripts/devnet_tool.py
           python3 -m py_compile docker/entrypoint.py
           python3 -I -m py_compile scripts/decentralization-report.py
+          python3 -I -m py_compile scripts/third-party-licenses.py
+      - name: Legal files present
+        run: |
+          for f in LICENSE NOTICE TRADEMARKS.md DISCLAIMER.md SECURITY.md CONTRIBUTING.md; do
+            test -s "$f" || { echo "::error::missing $f"; exit 1; }
+          done
+          ls patches/*.patch
       - name: Compose file
         run: docker compose -f docker/compose.yaml --profile tools config -q
       - name: No secrets or network state committed
@@ -83,8 +90,8 @@ jobs:
           export SUI_CONFIG_DIR="$RUNNER_TEMP/sui-config"
           mkdir -p "$SUI_CONFIG_DIR" && echo '[]' > "$SUI_CONFIG_DIR/sui.keystore"
           printf 'keystore:\n  File: %s/sui.keystore\nexternal_keys: ~\nenvs: []\nactive_env: ~\nactive_address: ~\n' "$SUI_CONFIG_DIR" > "$SUI_CONFIG_DIR/client.yaml"
-          bin/sui move test --path packages/seuaro_payments
-          bin/sui move test --path packages/seuaro_compute
+          bin/seuaro move test --path packages/seuaro_payments
+          bin/seuaro move test --path packages/seuaro_compute
       - uses: actions/upload-artifact@v4
         with:
           name: bin

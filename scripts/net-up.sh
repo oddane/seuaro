@@ -9,7 +9,7 @@ require docker
 COMPOSE=(docker compose -f "$SEUARO_ROOT/docker/compose.yaml")
 VALIDATORS=(v1 v2 v3 v4)
 
-for b in sui sui-node sui-faucet seuaro-verify; do
+for b in seuaro seuaro-node seuaro-faucet seuaro-verify; do
   [[ -x "$BIN_DIR/$b" ]] || die "missing $BIN_DIR/$b; run scripts/build.sh"
 done
 
@@ -41,7 +41,7 @@ log "starting network"
 log "waiting for the full node RPC"
 for _ in $(seq 1 150); do
   if "${COMPOSE[@]}" run --rm -T --no-deps client exec \
-       sui client --client.config /users/client.yaml chain-identifier >/tmp/seuaro-chain-id 2>/dev/null; then
+       seuaro client --client.config /users/client.yaml chain-identifier >/tmp/seuaro-chain-id 2>/dev/null; then
     log "network up, chain id $(tr -d '[:space:]' </tmp/seuaro-chain-id)"
     cat <<EOF >&2
   RPC        http://127.0.0.1:9000

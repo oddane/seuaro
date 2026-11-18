@@ -28,7 +28,7 @@ final() {
   done
   return 1
 }
-run() { # name, then sui client args; output saved to $WORK/<name>.json
+run() { # name, then seuaro client args; output saved to $WORK/<name>.json
   local name="$1"; shift
   "$SUI" client "${CLIENT[@]}" "$@" --gas-budget 500000000 --json >"$WORK/$name.json" 2>"$WORK/$name.err" \
     || { cat "$WORK/$name.err" "$WORK/$name.json" >&2; fail "$name: command failed"; }
