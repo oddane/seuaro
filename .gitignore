@@ -13,3 +13,7 @@ sui.keystore
 .DS_Store
 .idea/
 .vscode/
+
+# Move build output
+packages/*/build/
+packages/*/Move.lock

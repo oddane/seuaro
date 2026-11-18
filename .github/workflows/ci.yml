@@ -76,6 +76,9 @@ jobs:
       - name: Build (upstream --locked + verifier)
         run: scripts/build.sh
 
+      - name: Move unit tests (seuaro_payments)
+        run: bin/sui move test --path packages/seuaro_payments
+
       - name: Genesis
         run: scripts/devnet-genesis.sh
 
@@ -84,6 +87,11 @@ jobs:
 
       - name: Phase 1 acceptance tests
         run: tests/phase1.sh
+
+      # First run of the on-chain payment flow; made blocking once it passes.
+      - name: Payment contracts on devnet
+        continue-on-error: true
+        run: tests/payments-devnet.sh
 
       - name: Stop devnet
         if: always()
@@ -95,6 +103,7 @@ jobs:
           mkdir -p ci-artifacts
           cp -R devnet/logs ci-artifacts/ 2>/dev/null || true
           cp -R devnet/test-work ci-artifacts/ 2>/dev/null || true
+          cp -R devnet/payments-work ci-artifacts/ 2>/dev/null || true
           rm -rf ci-artifacts/test-work/foreign
           find ci-artifacts -name '*keystore*' -delete
       - uses: actions/upload-artifact@v4

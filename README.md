@@ -14,6 +14,8 @@ An independent Layer 1 for payments and verifiable compute, built **only from pr
 | `scripts/devnet-up.sh` / `devnet-down.sh` | Start and stop the devnet; a full node writes every checkpoint to `devnet/checkpoints/` |
 | `tools/seuaro-verify` | Light client that trusts only `genesis.blob`. It verifies every checkpoint certificate, chain linkage and committee hand-off, then reports a transaction FINAL |
 | `tests/phase1.sh` | Acceptance tests for API-01, CONS-01, CONS-05, AUTH-01, LEDGER-04, plus tamper tests |
+| `packages/seuaro_payments` | Move contracts: `turnstile` (LEDGER-05 capped pool accounting), `vault` (shared pool behind a turnstile), `escrow` (PAY-01 merchant escrow with buyer-protection window, disputes and arbiter timeout), with unit tests |
+| `tests/payments-devnet.sh` | Publishes the contracts on the devnet and runs refund, dispute and unauthorized-release flows, each verified FINAL |
 | `.github/workflows/ci.yml` | Runs all of the above on every push |
 
 ## Run it locally
@@ -21,9 +23,11 @@ Requirements: Linux or macOS, ~16 GB RAM, ~60 GB free disk, [rustup](https://rus
 
 ```bash
 scripts/build.sh            # fetch + build pinned upstream and the verifier
+bin/sui move test --path packages/seuaro_payments   # contract unit tests
 scripts/devnet-genesis.sh   # create a fresh chain (deletes devnet/)
 scripts/devnet-up.sh        # start 4 validators + full node
 tests/phase1.sh             # run the Phase 1 acceptance tests
+tests/payments-devnet.sh    # publish and exercise the payment contracts
 scripts/devnet-down.sh
 ```
 
