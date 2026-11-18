@@ -1,0 +1,199 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell scripts
+        run: |
+          shellcheck -x -S warning scripts/*.sh tests/*.sh
+          for f in scripts/*.sh tests/*.sh; do bash -n "$f"; done
+      - name: Python
+        run: |
+          python3 -I -m py_compile scripts/devnet_tool.py
+          python3 -m py_compile docker/entrypoint.py
+          python3 -I -m py_compile scripts/decentralization-report.py
+          python3 -I -m py_compile scripts/third-party-licenses.py
+      - name: Legal files present
+        run: |
+          for f in LICENSE NOTICE TRADEMARKS.md DISCLAIMER.md SECURITY.md CONTRIBUTING.md; do
+            test -s "$f" || { echo "::error::missing $f"; exit 1; }
+          done
+          ls patches/*.patch
+      - name: Compose file
+        run: docker compose -f docker/compose.yaml --profile tools config -q
+      - name: No secrets or network state committed
+        run: |
+          if git ls-files | grep -E '(^|/)(devnet|net)/|keystore|\.key$'; then
+            echo "::error::network state or key material is tracked"; exit 1
+          fi
+          if git grep -nE 'suiprivkey1[0-9a-z]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----'; then
+            echo "::error::private key material found"; exit 1
+          fi
+      - name: Upstream pin is well-formed
+        run: |
+          source UPSTREAM.lock
+          [[ "$UPSTREAM_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SEUARO_PROTOCOL_CHAIN" == "mainnet" ]]
+
+  build:
+    needs: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      CARGO_INCREMENTAL: "0"
+      # CI-only: skip debug info to fit the runner's disk. Source is unchanged.
+      CARGO_PROFILE_RELEASE_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune -af >/dev/null || true
+          df -h /
+      - name: System packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends \
+            clang libclang-dev cmake pkg-config libssl-dev libpq-dev zstd
+      - name: Fetch pinned upstream
+        run: scripts/fetch-upstream.sh
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: upstream/sui
+          shared-key: upstream-${{ hashFiles('UPSTREAM.lock') }}
+          cache-on-failure: true
+      - name: Build (upstream --locked + verifier)
+        run: scripts/build.sh
+      - name: Move unit tests
+        run: |
+          # Pre-made empty client config so the CLI never generates (and prints) a key.
+          export SUI_CONFIG_DIR="$RUNNER_TEMP/sui-config"
+          mkdir -p "$SUI_CONFIG_DIR" && echo '[]' > "$SUI_CONFIG_DIR/sui.keystore"
+          printf 'keystore:\n  File: %s/sui.keystore\nexternal_keys: ~\nenvs:\n  - alias: testnet\n    rpc: http://127.0.0.1:9000\n    ws: ~\n    basic_auth: ~\nactive_env: testnet\nactive_address: ~\n' "$SUI_CONFIG_DIR" > "$SUI_CONFIG_DIR/client.yaml"
+          bin/seuaro move test -e testnet --path packages/seuaro_payments
+          bin/seuaro move test -e testnet --path packages/seuaro_compute
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin
+          path: bin/
+          retention-days: 7
+
+  devnet:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: bin, path: bin }
+      - run: chmod +x bin/*
+      - name: Fetch pinned upstream (framework sources for publishing)
+        run: scripts/fetch-upstream.sh
+      - name: Genesis and start
+        run: scripts/devnet-genesis.sh && scripts/devnet-up.sh
+      - name: Phase 1 acceptance tests
+        run: tests/phase1.sh
+      # First run of the on-chain payment flow; made blocking once it passes.
+      - name: Payment contracts on devnet
+        continue-on-error: true
+        run: tests/payments-devnet.sh
+      - name: Stop devnet
+        if: always()
+        run: scripts/devnet-down.sh
+      - name: Collect logs (no keys)
+        if: always()
+        run: |
+          mkdir -p ci-artifacts
+          cp -R devnet/logs devnet/test-work devnet/payments-work ci-artifacts/ 2>/dev/null || true
+          rm -rf ci-artifacts/test-work/foreign
+          find ci-artifacts -name '*keystore*' -delete
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: devnet-logs, path: ci-artifacts, retention-days: 14 }
+
+  network:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: bin, path: bin }
+      - run: chmod +x bin/*
+      - name: Genesis ceremony and start container network
+        run: scripts/net-up.sh
+      - name: Explorer and monitoring respond
+        run: |
+          curl -sf http://127.0.0.1:8080/ | grep -q "Seuaro Explorer"
+          curl -sf -X POST http://127.0.0.1:8080/rpc -H 'Content-Type: application/json' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"sui_getLatestCheckpointSequenceNumber","params":[]}' | grep -q result
+          for _ in $(seq 1 30); do
+            curl -sf 'http://127.0.0.1:9090/api/v1/query?query=up' | grep -q '"value"' && break; sleep 2
+          done
+          curl -sf http://127.0.0.1:3000/api/health | grep -q ok
+      - name: Decentralization report (informational on a 4-node test net)
+        run: scripts/decentralization-report.py --rpc http://127.0.0.1:9000 | tee decentralization-report.txt
+      - name: Fault-injection tests
+        run: tests/phase2-faults.sh
+      - name: Collect logs
+        if: always()
+        run: |
+          mkdir -p ci-artifacts
+          cp decentralization-report.txt ci-artifacts/ 2>/dev/null || true
+          docker compose -f docker/compose.yaml logs --no-color > ci-artifacts/network.log 2>&1 || true
+          docker compose -f docker/compose.yaml ps > ci-artifacts/ps.txt 2>&1 || true
+      - name: Stop network
+        if: always()
+        run: scripts/net-down.sh --wipe
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: network-logs, path: ci-artifacts, retention-days: 14 }
+
+  # Publishes the tested node image so anyone can run the testnet without
+  # compiling. Only on manual runs or pushes to main, and only after the
+  # container network and fault tests pass.
+  publish:
+    needs: network
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: bin, path: bin }
+      - run: chmod +x bin/seuaro bin/seuaro-node bin/seuaro-faucet bin/seuaro-verify
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and push
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          img="ghcr.io/$owner/seuaro-node"
+          docker build -f docker/Dockerfile \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            -t "$img:${{ github.sha }}" -t "$img:testnet" .
+          docker push "$img:${{ github.sha }}"
+          docker push "$img:testnet"
+          echo "Published $img:testnet ($img:${{ github.sha }})" >> "$GITHUB_STEP_SUMMARY"
