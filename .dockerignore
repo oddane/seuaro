@@ -1,8 +1,11 @@
 # Only the built binaries and docker files go into the image build context.
 *
-!bin/sui
-!bin/sui-node
-!bin/sui-faucet
+!bin/seuaro
+!bin/seuaro-node
+!bin/seuaro-faucet
 !bin/seuaro-verify
+!bin/THIRD-PARTY-LICENSES.md
+!LICENSE
+!NOTICE
 !docker/entrypoint.py
 !UPSTREAM.lock

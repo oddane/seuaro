@@ -1,0 +1,39 @@
+Seuaro
+Copyright 2026 The Seuaro Authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+-------------------------------------------------------------------------------
+Third-party software
+-------------------------------------------------------------------------------
+
+This product includes and builds on software developed by Mysten Labs, Inc.
+and contributors to the Sui project (https://github.com/MystenLabs/sui),
+licensed under the Apache License, Version 2.0. Seuaro builds the pinned
+upstream release recorded in UPSTREAM.lock and applies the modifications listed
+in patches/ and docs/architecture/FORK-DELTA.md. Upstream copyright and license
+notices are retained in the upstream source files.
+
+The upstream source includes the Move language implementation, originally
+developed by The Diem Core Contributors and Facebook, Inc. (now Meta
+Platforms, Inc.), licensed under the Apache License, Version 2.0. Their
+copyright notices are retained in the affected source files.
+
+A license sweep of the pinned upstream tree is recorded in
+docs/legal/LICENSE-AUDIT.md.
+
+Upstream Sui documentation is licensed under the Creative Commons Attribution
+4.0 International license (CC BY 4.0). Where Seuaro documentation adapts it,
+the source is credited in place.
+
+Binary distributions include THIRD-PARTY-LICENSES.md, generated at build time,
+listing every Rust crate compiled into the binaries and its license.
+
+-------------------------------------------------------------------------------
+Trademarks
+-------------------------------------------------------------------------------
+
+"Sui" and related names and logos are trademarks of their respective owners.
+Seuaro is an independent project. It is not affiliated with, endorsed by, or
+sponsored by Mysten Labs, Inc. or the Sui Foundation. References to Sui in this
+project only describe the origin of open-source code (see TRADEMARKS.md).

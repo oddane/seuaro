@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/oddane/seuaro/security/advisories/new
+    about: Please report vulnerabilities privately. Never open a public issue for them.
+  - name: Questions and help
+    url: https://github.com/oddane/seuaro/blob/main/SUPPORT.md
+    about: How to get help running or building on Seuaro.
