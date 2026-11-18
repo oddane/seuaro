@@ -104,7 +104,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { name: bin, path: bin }
       - run: chmod +x bin/*
       - name: Fetch pinned upstream (framework sources for publishing)
@@ -137,7 +137,7 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { name: bin, path: bin }
       - run: chmod +x bin/*
       - name: Genesis ceremony and start container network
@@ -182,7 +182,7 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { name: bin, path: bin }
       - run: chmod +x bin/seuaro bin/seuaro-node bin/seuaro-faucet bin/seuaro-verify
       - name: Log in to GitHub Container Registry
