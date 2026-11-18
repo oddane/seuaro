@@ -61,7 +61,8 @@ const el = (tag, attrs = {}, ...kids) => {
 };
 const short = (s) => s && s.length > 20 ? s.slice(0, 10) + "…" + s.slice(-6) : (s ?? "");
 const link = (text, fn) => el("a", { onclick: (ev) => { ev.preventDefault(); fn(); } }, text);
-const sui = (mist) => (Number(BigInt(mist ?? 0) / 1000000n) / 1000).toLocaleString() + " SUI";
+// Native coin: Seuaro (SEU), 9 decimals (ADR-0002).
+const sui = (mist) => (Number(BigInt(mist ?? 0) / 1000000n) / 1000).toLocaleString() + " SEU";
 const age = (ms) => { const s = Math.max(0, Math.round((Date.now() - Number(ms)) / 1000)); return s < 60 ? s + "s ago" : Math.round(s / 60) + "m ago"; };
 function table(headers, rows) {
   return el("table", {}, el("tr", {}, ...headers.map(h => el("th", {}, h))),

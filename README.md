@@ -1,6 +1,6 @@
 # Seuaro
 
-An independent Layer 1 for payments and verifiable compute, built **only from proven techniques**: a pinned, unmodified Sui release (Mysticeti consensus + Move), its own genesis and validator set, and a policy that every component must have a real production track record. Design docs are in [`docs/`](docs/README.md).
+**Seuaro (SEU)** is an independent Layer 1 for payments and verifiable compute, built **only from proven techniques**: a pinned, unmodified Sui release (Mysticeti consensus + Move), its own genesis and validator set, and a policy that every component must have a real production track record. Design docs are in [`docs/`](docs/README.md).
 
 > **Status: testnet software.** Runs as a local devnet or a multi-container testnet. Not audited, no token, no mainnet, no real value. Do not use with real funds.
 
@@ -23,6 +23,7 @@ An independent Layer 1 for payments and verifiable compute, built **only from pr
 | `tests/phase2-faults.sh` | Fault injection: validator crash, loss of quorum, network partition, restarts across epochs |
 | `scripts/decentralization-report.py` | Concentration of voting power by validator, operator, ASN, provider and region (ADR-0004) |
 | `docs/strategy/COMPETITIVE-ANALYSIS.md` | What competitors use, where they failed, and Seuaro's fix for each |
+| `docs/architecture/ADR-0002-native-asset-seu.md` / `ADR-0003-fees-and-sponsorship.md` | SEU supply, allocation, staking rewards; fees and gas sponsorship |
 | `.github/workflows/ci.yml` | Runs all of the above on every push |
 
 ## Run it locally

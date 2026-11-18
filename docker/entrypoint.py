@@ -37,12 +37,28 @@ USERS = "/users"
 TEMPLATES = f"{CEREMONY}/templates"
 GENESIS = f"{CEREMONY}/genesis.blob"
 
+# SEU economics (ADR-0002). 1 SEU = 10^9 base units; supply fixed at 10B.
 MIST_PER_SUI = 10**9
-TOTAL_SUPPLY_MIST = 10_000_000_000 * MIST_PER_SUI
-VALIDATOR_STAKE_MIST = 30_000_000 * MIST_PER_SUI  # MIN_VALIDATOR_JOINING_STAKE
-FAUCET_MIST = 1_000_000_000 * MIST_PER_SUI
-TEST_USER_MIST = 100_000_000 * MIST_PER_SUI
+SEU = MIST_PER_SUI
+TOTAL_SUPPLY_MIST = 10_000_000_000 * SEU
+VALIDATOR_STAKE_MIST = 30_000_000 * SEU   # upstream minimum joining stake
+STAKE_SUBSIDY_FUND = 1_000_000_000 * SEU  # 10%, must be the remainder
+BUCKETS = {                               # ADR-0002 allocation
+    "ecosystem": 4_000_000_000 * SEU,     # 40% (validator delegation staked from here)
+    "contributors": 2_000_000_000 * SEU,  # 20%
+    "investors": 1_500_000_000 * SEU,     # 15%
+    "foundation": 1_000_000_000 * SEU,    # 10%
+    "community": 500_000_000 * SEU,       # 5% (faucet and test users paid from here)
+}
+FAUCET_MIST = 100_000_000 * SEU
+TEST_USER_MIST = 10_000_000 * SEU
 TEST_USERS = ["buyer", "merchant", "arbiter"]
+SUBSIDY_PARAMS = {                        # ADR-0002 staking rewards schedule
+    "stake_subsidy_start_epoch": 0,
+    "stake_subsidy_initial_distribution_amount": 1_000_000 * SEU,
+    "stake_subsidy_period_length": 90,
+    "stake_subsidy_decrease_rate": 1000,  # basis points: 10% per period
+}
 ZERO_ADDRESS = "0x" + "0" * 64
 
 
@@ -124,13 +140,17 @@ def ceremony_init():
     if key is None:
         die(f"no epoch duration field in {pfile}: {list(params)}")
     params[key] = epoch_ms
+    for k, v in SUBSIDY_PARAMS.items():
+        if k not in params:
+            die(f"ceremony parameters have no {k}; upstream format changed")
+        params[k] = v
     with open(pfile, "w") as f:
         yaml.safe_dump(params, f, sort_keys=False)
     log(f"epoch duration set to {epoch_ms} ms")
 
     # Test accounts (testnet only). Each gets its own keystore directory.
     addresses, all_keys = {}, []
-    for name in ["faucet"] + TEST_USERS:
+    for name in list(BUCKETS) + ["faucet"] + TEST_USERS:
         addr, key = gen_key("ed25519")
         addresses[name] = addr
         all_keys.append(key)
@@ -191,16 +211,26 @@ def ceremony_distribute():
         die("no validators in ceremony")
     users = json.load(open(os.path.join(USERS, "addresses.json")))
 
+    # Validators are staked by the ecosystem reserve's delegation program.
     allocations = []
     for r in rows:
-        addr = r["account-address"]
-        allocations.append((addr, VALIDATOR_STAKE_MIST, addr))
+        allocations.append((users["ecosystem"], VALIDATOR_STAKE_MIST, r["account-address"]))
+    delegated = VALIDATOR_STAKE_MIST * len(rows)
+    community_spent = FAUCET_MIST + TEST_USER_MIST * len(TEST_USERS)
+    for bucket, amount in BUCKETS.items():
+        if bucket == "ecosystem":
+            amount -= delegated
+        if bucket == "community":
+            amount -= community_spent
+        if amount < 0:
+            die(f"bucket {bucket} over-allocated")
+        allocations.append((users[bucket], amount, ""))
     allocations.append((users["faucet"], FAUCET_MIST, ""))
     for u in TEST_USERS:
         allocations.append((users[u], TEST_USER_MIST, ""))
     subsidy = TOTAL_SUPPLY_MIST - sum(a[1] for a in allocations)
-    if subsidy < 0:
-        die("allocations exceed total supply")
+    if subsidy != STAKE_SUBSIDY_FUND:
+        die(f"allocation does not leave exactly 1B SEU for the stake subsidy fund ({subsidy})")
 
     with open(os.path.join(CEREMONY, "token-distribution-schedule"), "w", newline="") as f:
         w = csv.writer(f)
@@ -208,8 +238,8 @@ def ceremony_distribute():
         for addr, amt, staked in allocations:
             w.writerow([addr, amt, staked])
         w.writerow([ZERO_ADDRESS, subsidy, ""])  # stake subsidy fund, must be last
-    log(f"test token distribution written: {len(rows)} validators staked, "
-        f"{1 + len(TEST_USERS)} funded accounts, subsidy fund {subsidy // MIST_PER_SUI} SUI")
+    log(f"SEU genesis distribution written (ADR-0002): {len(rows)} validators delegated "
+        f"{VALIDATOR_STAKE_MIST // SEU:,} SEU each, stake subsidy fund {subsidy // SEU:,} SEU")
 
 
 def ceremony_build():

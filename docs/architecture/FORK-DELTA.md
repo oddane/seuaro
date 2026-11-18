@@ -12,7 +12,8 @@ Every difference between Seuaro and the pinned upstream Sui release. Anything no
 | D4 | Node config | `transaction_kv_store_read_config.base_url` must be empty | Never read Sui mainnet data | No | `scripts/devnet_tool.py` |
 | D5 | Added tool | `seuaro-verify`, built inside the upstream workspace without changing any dependency version | Client-side finality verification | No (client only) | `tools/seuaro-verify` |
 | D6 | Build env | `CARGO_PROFILE_RELEASE_DEBUG=0` in CI (debug info off); `CXXFLAGS=-include cstdint` everywhere (RocksDB 8.10 vs GCC 13+) | Fit the CI disk; compile the pinned RocksDB on Ubuntu 24.04 | No (build flags only) | `.github/workflows/ci.yml`, `scripts/build.sh` |
-| D7 | Genesis allocation | Test token distribution: 30M staked per validator, faucet 1B, three test users 100M each, rest to the stake subsidy fund | Testnet only; real allocation is ADR-0002 | Yes (genesis state) | `docker/entrypoint.py` |
+| D7 | Genesis economics | ADR-0002 allocation (40/10/20/15/10/5) and stake-subsidy schedule (1M SEU/epoch, −10% per 90 epochs) via ceremony parameters | SEU economics without code changes | Yes (genesis state) | `docker/entrypoint.py` |
+| D9 | *Planned* framework metadata | Coin name/symbol "Sui"/"SUI" → "Seuaro"/"SEU" in `sui.move` + recompiled system packages; type path `0x2::sui::SUI` unchanged | Wallets show SEU | Yes (system package bytecode) | ADR-0002 |
 | D8 | Packaging | Container image (ubuntu:24.04) with unmodified binaries + `sui-faucet` | Container testnet | No | `docker/Dockerfile` |
 
 **Known inert mainnet constants** (ADR-0008 R3): mainnet gasless stablecoin allowlist; mainnet zkLogin provider list; mainnet name-service object IDs.
