@@ -92,7 +92,7 @@ jobs:
           printf 'keystore:\n  File: %s/sui.keystore\nexternal_keys: ~\nenvs:\n  - alias: testnet\n    rpc: http://127.0.0.1:9000\n    ws: ~\n    basic_auth: ~\nactive_env: testnet\nactive_address: ~\n' "$SUI_CONFIG_DIR" > "$SUI_CONFIG_DIR/client.yaml"
           bin/seuaro move test -e testnet --path packages/seuaro_payments
           bin/seuaro move test -e testnet --path packages/seuaro_compute
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bin
           path: bin/
@@ -127,7 +127,7 @@ jobs:
           cp -R devnet/logs devnet/test-work devnet/payments-work ci-artifacts/ 2>/dev/null || true
           rm -rf ci-artifacts/test-work/foreign
           find ci-artifacts -name '*keystore*' -delete
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with: { name: devnet-logs, path: ci-artifacts, retention-days: 14 }
 
@@ -165,7 +165,7 @@ jobs:
       - name: Stop network
         if: always()
         run: scripts/net-down.sh --wipe
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with: { name: network-logs, path: ci-artifacts, retention-days: 14 }
 
