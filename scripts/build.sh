@@ -10,6 +10,11 @@ require git cargo perl
 mkdir -p "$BIN_DIR"
 
 profile="release"
+
+# RocksDB 8.10 (pinned by upstream) misses `#include <cstdint>`, which GCC 13+
+# no longer pulls in transitively. Force-include it for C++ dependencies.
+# Build flag only: no source change (FORK-DELTA D6).
+export CXXFLAGS="${CXXFLAGS:-} -include cstdint"
 target_dir="${CARGO_TARGET_DIR:-$UPSTREAM_DIR/target}/$profile"
 
 log "building upstream sui + sui-node + sui-faucet ($profile, --locked)"
