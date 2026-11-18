@@ -45,7 +45,8 @@ echo "buyer $BUYER  merchant $MERCHANT  arbiter $ARBITER"
 
 # --- publish ------------------------------------------------------------------
 as "$BUYER"
-run publish publish "$SEUARO_ROOT/packages/seuaro_payments"
+run publish test-publish --build-env testnet --pubfile-path "$WORK/Pub.devnet.toml" \
+  "$SEUARO_ROOT/packages/seuaro_payments"
 PKG="$("${TOOL[@]}" package-id "$WORK/publish.json")"
 pass "published seuaro_payments at $PKG (FINAL)"
 
