@@ -27,9 +27,14 @@ fi
 [[ "$remote_tag" == "$UPSTREAM_COMMIT" ]] \
   || die "tag $UPSTREAM_TAG now points to '$remote_tag', not the pinned commit"
 
+# Start every build from the pristine pinned tree. The only changes Seuaro ever
+# makes are the numbered patches that build.sh applies afterwards.
 if [[ -n "$(git -C "$UPSTREAM_DIR" status --porcelain --untracked-files=no)" ]]; then
-  die "upstream checkout has local modifications; Seuaro allows zero local changes"
+  log "resetting upstream checkout to the pinned commit (discarding previous patch application)"
+  git -C "$UPSTREAM_DIR" checkout -q -- .
 fi
+[[ -z "$(git -C "$UPSTREAM_DIR" status --porcelain --untracked-files=no)" ]] \
+  || die "could not reset upstream checkout to pristine"
 
 toolchain="$(sed -n 's/^channel *= *"\(.*\)"/\1/p' "$UPSTREAM_DIR/rust-toolchain.toml")"
 [[ "$toolchain" == "$UPSTREAM_RUST_TOOLCHAIN" ]] \

@@ -31,9 +31,10 @@ require() {
   done
 }
 
+# The Seuaro CLI (upstream `sui` binary with patches, installed as `seuaro`).
 sui_bin() {
-  [[ -x "$BIN_DIR/sui" ]] || die "sui binary not found in $BIN_DIR; run scripts/build.sh"
-  printf '%s' "$BIN_DIR/sui"
+  [[ -x "$BIN_DIR/seuaro" ]] || die "seuaro binary not found in $BIN_DIR; run scripts/build.sh"
+  printf '%s' "$BIN_DIR/seuaro"
 }
 
 verify_bin() {

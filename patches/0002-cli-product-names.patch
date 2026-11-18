@@ -1,0 +1,46 @@
+diff --git a/crates/sui-faucet/src/faucet_config.rs b/crates/sui-faucet/src/faucet_config.rs
+index d6f572f6..72996b37 100644
+--- a/crates/sui-faucet/src/faucet_config.rs
++++ b/crates/sui-faucet/src/faucet_config.rs
+@@ -9,8 +9,9 @@ pub const DEFAULT_NUM_COINS: usize = 5;
+ 
+ #[derive(Parser, Clone)]
+ #[clap(
+-    name = "Sui Faucet",
+-    about = "Faucet for requesting test tokens on Sui",
++    // Seuaro patch 0002: product name shown in help and version output.
++    name = "seuaro-faucet",
++    about = "Faucet for requesting test SEU on a Seuaro testnet",
+     rename_all = "kebab-case"
+ )]
+ pub struct FaucetConfig {
+diff --git a/crates/sui-node/src/main.rs b/crates/sui-node/src/main.rs
+index 81c6da72..92579e0a 100644
+--- a/crates/sui-node/src/main.rs
++++ b/crates/sui-node/src/main.rs
+@@ -26,7 +26,8 @@ bin_version::bin_version!();
+ 
+ #[derive(Parser)]
+ #[clap(rename_all = "kebab-case")]
+-#[clap(name = env!("CARGO_BIN_NAME"))]
++// Seuaro patch 0002: product name shown in help and version output.
++#[clap(name = "seuaro-node")]
+ #[clap(version = VERSION)]
+ #[clap(group(ArgGroup::new("exclusive").required(false)))]
+ struct Args {
+diff --git a/crates/sui/src/main.rs b/crates/sui/src/main.rs
+index 835ec760..3f0888f1 100644
+--- a/crates/sui/src/main.rs
++++ b/crates/sui/src/main.rs
+@@ -12,8 +12,9 @@ bin_version::bin_version!();
+ 
+ #[derive(Parser)]
+ #[clap(
+-    name = env!("CARGO_BIN_NAME"),
+-    about = "A Byzantine fault tolerant chain with low-latency finality and high throughput",
++    // Seuaro patch 0002: product name shown in help and version output.
++    name = "seuaro",
++    about = "Seuaro command-line interface",
+     rename_all = "kebab-case",
+     author,
+     version = VERSION,
