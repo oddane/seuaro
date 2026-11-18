@@ -61,11 +61,24 @@ fun challenged(): (Scenario, Clock) {
     (sc, clock)
 }
 
-fun vote_as(sc: &mut Scenario, clock: &Clock, who: address, hash: vector<u8>) {
+fun salt(who: address): vector<u8> { sui::address::to_bytes(who) }
+
+fun commit_as(sc: &mut Scenario, clock: &Clock, who: address, hash: vector<u8>) {
     sc.next_tx(who);
     let mut job = sc.take_shared<Job<SUI>>();
-    job.vote(hash, clock, sc.ctx());
+    job.commit_vote(jobs::commitment(hash, salt(who), who), clock, sc.ctx());
     ts::return_shared(job);
+}
+
+fun reveal_as(sc: &mut Scenario, clock: &Clock, who: address, hash: vector<u8>) {
+    sc.next_tx(who);
+    let mut job = sc.take_shared<Job<SUI>>();
+    job.reveal_vote(hash, salt(who), clock, sc.ctx());
+    ts::return_shared(job);
+}
+
+fun end_commit_window(clock: &mut Clock) {
+    clock.increment_for_testing(jobs::commit_window_ms() + 1);
 }
 
 fun close_as(sc: &mut Scenario, who: address) {
@@ -115,9 +128,12 @@ fun cannot_finalize_during_challenge_window() {
 
 #[test]
 fun quorum_upholding_result_pays_provider() {
-    let (mut sc, clock) = challenged();
-    vote_as(&mut sc, &clock, V1, h(7));
-    vote_as(&mut sc, &clock, V2, h(7));
+    let (mut sc, mut clock) = challenged();
+    commit_as(&mut sc, &clock, V1, h(7));
+    commit_as(&mut sc, &clock, V2, h(7));
+    end_commit_window(&mut clock);
+    reveal_as(&mut sc, &clock, V1, h(7));
+    reveal_as(&mut sc, &clock, V2, h(7));
     close_as(&mut sc, CLIENT);
     assert_eq!(received(&mut sc, PROVIDER), REWARD + BOND);
     assert_eq!(received(&mut sc, CLIENT), 0);
@@ -126,10 +142,14 @@ fun quorum_upholding_result_pays_provider() {
 
 #[test]
 fun quorum_rejecting_result_refunds_client_with_bond() {
-    let (mut sc, clock) = challenged();
-    vote_as(&mut sc, &clock, V1, h(7)); // one verifier sides with the provider
-    vote_as(&mut sc, &clock, V2, h(9));
-    vote_as(&mut sc, &clock, V3, h(9)); // majority finds a different result
+    let (mut sc, mut clock) = challenged();
+    commit_as(&mut sc, &clock, V1, h(7)); // one verifier sides with the provider
+    commit_as(&mut sc, &clock, V2, h(9));
+    commit_as(&mut sc, &clock, V3, h(9)); // majority finds a different result
+    end_commit_window(&mut clock);
+    reveal_as(&mut sc, &clock, V1, h(7));
+    reveal_as(&mut sc, &clock, V2, h(9));
+    reveal_as(&mut sc, &clock, V3, h(9));
     close_as(&mut sc, PROVIDER);
     assert_eq!(received(&mut sc, CLIENT), REWARD + BOND);
     assert_eq!(received(&mut sc, PROVIDER), 0);
@@ -138,8 +158,10 @@ fun quorum_rejecting_result_refunds_client_with_bond() {
 
 #[test, expected_failure(abort_code = jobs::EWrongState)]
 fun one_vote_is_not_a_quorum() {
-    let (mut sc, clock) = challenged();
-    vote_as(&mut sc, &clock, V1, h(7));
+    let (mut sc, mut clock) = challenged();
+    commit_as(&mut sc, &clock, V1, h(7));
+    end_commit_window(&mut clock);
+    reveal_as(&mut sc, &clock, V1, h(7));
     close_as(&mut sc, PROVIDER);
     finish(sc, clock);
 }
@@ -147,8 +169,8 @@ fun one_vote_is_not_a_quorum() {
 #[test, expected_failure(abort_code = jobs::EAlreadyVoted)]
 fun verifier_cannot_vote_twice() {
     let (mut sc, clock) = challenged();
-    vote_as(&mut sc, &clock, V1, h(7));
-    vote_as(&mut sc, &clock, V1, h(7));
+    commit_as(&mut sc, &clock, V1, h(7));
+    commit_as(&mut sc, &clock, V1, h(9));
     finish(sc, clock);
 }
 
@@ -222,7 +244,10 @@ fun client_cancels_unaccepted_job() {
 #[test]
 fun dispute_without_quorum_refunds_client_and_returns_bond() {
     let (mut sc, mut clock) = challenged();
-    vote_as(&mut sc, &clock, V1, h(7));
+    commit_as(&mut sc, &clock, V1, h(7));
+    commit_as(&mut sc, &clock, V2, h(7)); // V2 commits but never reveals
+    end_commit_window(&mut clock);
+    reveal_as(&mut sc, &clock, V1, h(7));
     clock.increment_for_testing(jobs::dispute_window_ms() + 1);
     sc.next_tx(CLIENT);
     let job = sc.take_shared<Job<SUI>>();
@@ -256,5 +281,59 @@ fun spec_hash_must_be_32_bytes() {
     let clock = clock::create_for_testing(sc.ctx());
     let pay = coin::mint_for_testing<SUI>(REWARD, sc.ctx());
     jobs::post(pay, b"short", BOND, verifiers(), 2, WINDOW, WINDOW, WINDOW, &clock, sc.ctx());
+    finish(sc, clock);
+}
+
+// === Commit-reveal (anti vote-copying) ===
+
+#[test, expected_failure(abort_code = jobs::ETooEarly)]
+fun cannot_reveal_during_commit_window() {
+    let (mut sc, clock) = challenged();
+    commit_as(&mut sc, &clock, V1, h(7));
+    reveal_as(&mut sc, &clock, V1, h(7));
+    finish(sc, clock);
+}
+
+#[test, expected_failure(abort_code = jobs::EBadReveal)]
+fun reveal_must_match_commitment() {
+    let (mut sc, mut clock) = challenged();
+    commit_as(&mut sc, &clock, V1, h(7));
+    end_commit_window(&mut clock);
+    reveal_as(&mut sc, &clock, V1, h(9)); // changed answer after seeing others
+    finish(sc, clock);
+}
+
+#[test, expected_failure(abort_code = jobs::EBadReveal)]
+fun copied_commitment_cannot_be_revealed() {
+    let (mut sc, mut clock) = challenged();
+    commit_as(&mut sc, &clock, V1, h(7));
+    // V2 copies V1's commitment bytes verbatim instead of doing the work.
+    sc.next_tx(V2);
+    let mut job = sc.take_shared<Job<SUI>>();
+    job.commit_vote(jobs::commitment(h(7), salt(V1), V1), &clock, sc.ctx());
+    ts::return_shared(job);
+    end_commit_window(&mut clock);
+    // Even knowing V1's answer and salt, V2's reveal is bound to V2's address.
+    sc.next_tx(V2);
+    let mut job = sc.take_shared<Job<SUI>>();
+    job.reveal_vote(h(7), salt(V1), &clock, sc.ctx());
+    ts::return_shared(job);
+    finish(sc, clock);
+}
+
+#[test, expected_failure(abort_code = jobs::ENotCommitted)]
+fun cannot_reveal_without_commit() {
+    let (mut sc, mut clock) = challenged();
+    commit_as(&mut sc, &clock, V1, h(7));
+    end_commit_window(&mut clock);
+    reveal_as(&mut sc, &clock, V2, h(7));
+    finish(sc, clock);
+}
+
+#[test, expected_failure(abort_code = jobs::ETooLate)]
+fun cannot_commit_after_commit_window() {
+    let (mut sc, mut clock) = challenged();
+    end_commit_window(&mut clock);
+    commit_as(&mut sc, &clock, V1, h(7));
     finish(sc, clock);
 }

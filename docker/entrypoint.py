@@ -177,7 +177,7 @@ def validator_join(name):
         "--p2p-address", f"/dns/{name}/udp/8084",
         "--narwhal-primary-address", f"/dns/{name}/udp/8081",
         "--narwhal-worker-address", f"/dns/{name}/udp/8082",
-        "--description", f"Seuaro test validator {name}",
+        "--description", f"Seuaro test validator {name}; operator={name}; asn=AS-LOCAL; provider=docker; region=local",
         "--image-url", "https://example.invalid/validator.png",
         "--project-url", "https://example.invalid",
     )

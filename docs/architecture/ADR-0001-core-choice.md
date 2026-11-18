@@ -46,7 +46,7 @@
 |---|---|---|
 | ADR-0002 | Native asset, supply, emissions | Open |
 | ADR-0003 | Gas/fee economics and spam pricing | Open |
-| ADR-0004 | Validator admission and stake caps | Open |
+| ADR-0004 | Validator admission and stake caps | **Accepted (testnets)** |
 | ADR-0005 | Upgrade authorization, timelocks, emergency halt | Open |
 | ADR-0006 | Payment settlement semantics and merchant finality UX | Open |
 | ADR-0007 | Compute verification tiers and caps | Open |

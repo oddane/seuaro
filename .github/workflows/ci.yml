@@ -30,6 +30,7 @@ jobs:
         run: |
           python3 -I -m py_compile scripts/devnet_tool.py
           python3 -m py_compile docker/entrypoint.py
+          python3 -I -m py_compile scripts/decentralization-report.py
       - name: Compose file
         run: docker compose -f docker/compose.yaml --profile tools config -q
       - name: No secrets or network state committed
@@ -139,12 +140,15 @@ jobs:
             curl -sf 'http://127.0.0.1:9090/api/v1/query?query=up' | grep -q '"value"' && break; sleep 2
           done
           curl -sf http://127.0.0.1:3000/api/health | grep -q ok
+      - name: Decentralization report (informational on a 4-node test net)
+        run: scripts/decentralization-report.py --rpc http://127.0.0.1:9000 | tee decentralization-report.txt
       - name: Fault-injection tests
         run: tests/phase2-faults.sh
       - name: Collect logs
         if: always()
         run: |
           mkdir -p ci-artifacts
+          cp decentralization-report.txt ci-artifacts/ 2>/dev/null || true
           docker compose -f docker/compose.yaml logs --no-color > ci-artifacts/network.log 2>&1 || true
           docker compose -f docker/compose.yaml ps > ci-artifacts/ps.txt 2>&1 || true
       - name: Stop network
