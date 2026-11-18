@@ -1,0 +1,13 @@
+[package]
+name = "seuaro_payments"
+version = "0.1.0"
+edition = "2024.beta"
+license = "Apache-2.0"
+
+# Framework is taken from the pinned upstream checkout (scripts/fetch-upstream.sh),
+# never from a moving git branch.
+[dependencies]
+Sui = { local = "../../upstream/sui/crates/sui-framework/packages/sui-framework", override = true }
+
+[addresses]
+seuaro_payments = "0x0"

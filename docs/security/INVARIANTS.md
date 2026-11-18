@@ -31,6 +31,9 @@ An invariant is an assertion to be modeled, tested and, where possible, machine-
 | COMP-01 | Compute-provider rewards require the contracted proof/attestation/check conditions; rejected jobs cannot release escrow. | Contract specs + fraudulent-provider tests |
 | COMP-02 | Verification claims identify their trust tier (replay, independent quorum, zkVM, TEE metadata); none are marketed as equivalent. | Protocol format review |
 | COMP-03 | *(new)* A job whose value exceeds the Tier Z cap cannot be paid on a single zkVM proof; it needs replay or a second independent zkVM. TEE attestation alone never releases escrow. | Contract specs + tests |
+| COMP-04 | *(new, v0.5)* A verifier's vote cannot be seen by other verifiers before they commit their own; a copied commitment cannot be revealed. | Commit-reveal contract tests |
+| PAY-02 | *(new, v0.5)* An invoice is paid at most once, for exactly its amount, and total refunds never exceed the amount paid and go only to the payer. | Move tests + fuzz |
+| DEC-01 | *(new, v0.5)* No validator, operator, ASN or hosting provider exceeds its ADR-0004 share of voting power; no single group can reach 1/3. | `scripts/decentralization-report.py --enforce` each epoch |
 | PRIV-01 | Shielded proofs validate conservation, authorization and nullifier uniqueness; no unauthorized mint/double-spend. | Formally verified circuit + external audit + LEDGER-05 |
 | PQ-01 | Each supported signature scheme has standard test vectors, domain separation, resource limits and a migration/rollback policy. | Crypto interop + implementation audit |
 
@@ -50,5 +53,5 @@ An invariant is an assertion to be modeled, tested and, where possible, machine-
 |---|---|
 | Phase 1 (devnet) | CONS-01, CONS-02, LEDGER-01, LEDGER-02, LEDGER-04, AUTH-01, EXEC-01, STORE-01, API-01 |
 | Phase 2 (hardened testnet) | All Phase 1 + CONS-03/04/05, LIVE-01, LEDGER-03, EXEC-02/03/04, GOV-01/02/03, NET-01 |
-| Phase 3 (products) | All Phase 2 + LEDGER-05, AUTH-02, PAY-01, COMP-01/02/03 |
-| Mainnet | All of the above. PRIV-01 and PQ-01 are required only when those features are enabled. |
+| Phase 3 (products) | All Phase 2 + LEDGER-05, AUTH-02, PAY-01/02, COMP-01/02/03/04 |
+| Mainnet | All of the above, plus DEC-01 enforced. PRIV-01 and PQ-01 are required only when those features are enabled. |

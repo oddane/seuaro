@@ -84,6 +84,19 @@ def largest_coin(path):
     print(best[0])
 
 
+def coins(path):
+    """Print all gas coin IDs, largest balance first."""
+    data = _load_json(Path(path).read_text())
+    found = {}
+    for d in _walk(data):
+        cid = d.get("gasCoinId") or d.get("gas_coin_id")
+        bal = d.get("mistBalance", d.get("mist_balance"))
+        if cid and bal is not None:
+            found[cid] = int(bal)
+    for cid, _ in sorted(found.items(), key=lambda kv: -kv[1]):
+        print(cid)
+
+
 def tx_digest(path):
     data = _load_json(Path(path).read_text())
     for d in _walk(data):
@@ -113,21 +126,53 @@ def addresses(path):
     active = data.get("activeAddress") or data.get("active_address")
     others = [a[1] for a in data.get("addresses", []) if a[1] != active]
     print(active)
-    print(others[0] if others else active)
+    for a in others or [active]:
+        print(a)
 
 
 def field(path, key):
     print(_load_json(Path(path).read_text())[key])
 
 
+def package_id(path):
+    data = _load_json(Path(path).read_text())
+    for d in _walk(data):
+        if d.get("type") == "published" and "packageId" in d:
+            print(d["packageId"])
+            return
+    fail("no published package in output")
+
+
+def created(path, type_substr):
+    data = _load_json(Path(path).read_text())
+    for d in _walk(data):
+        if d.get("type") == "created" and type_substr in str(d.get("objectType", "")):
+            print(d["objectId"])
+            return
+    fail(f"no created object of type *{type_substr}*")
+
+
+def event_field(path, event_substr, key):
+    data = _load_json(Path(path).read_text())
+    for d in _walk(data):
+        if event_substr in str(d.get("type", "")) and isinstance(d.get("parsedJson"), dict):
+            print(d["parsedJson"][key])
+            return
+    fail(f"no event *{event_substr}* in output")
+
+
 COMMANDS = {
     "check-config": check_config,
     "scrub-config": scrub_config,
     "largest-coin": largest_coin,
+    "coins": coins,
     "tx-digest": tx_digest,
     "tx-succeeded": tx_succeeded,
     "addresses": addresses,
     "field": field,
+    "package-id": package_id,
+    "created": created,
+    "event-field": event_field,
 }
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ WORK="$DEVNET_DIR/test-work"
 rm -rf "$WORK" && mkdir -p "$WORK"
 
 pass() { printf '\033[1;32mPASS\033[0m %s\n' "$*"; }
-fail() { printf '\033[1;31mFAIL\033[0m %s\n' "$*"; exit 1; }
+fail() { printf '\033[1;31mFAIL\033[0m %s\n' "$*" >&2; exit 1; }
 
 verify() { "$VERIFY" --genesis "$GENESIS" --checkpoints "$INGEST_DIR" "$@"; }
 

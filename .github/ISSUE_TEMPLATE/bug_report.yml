@@ -1,0 +1,53 @@
+name: Bug report
+description: Something does not work as documented.
+title: "[Bug]: "
+labels: ["type: bug", "status: triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Security issues must be reported privately** (see SECURITY.md), not here.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Build / patches, Devnet scripts, Container testnet, seuaro-verify, Move contracts (payments), Move contracts (compute), Explorer, Monitoring, Docs, Other]
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes:
+      label: Commit or release
+      description: Output of `git rev-parse --short HEAD` or the image tag.
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      render: shell
+    validations: { required: true }
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant output. Remove any keys, seeds or addresses you don't want public.
+      render: text
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "Ubuntu 24.04, Docker 29, 16 GB RAM"
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: This is not a security vulnerability.
+          required: true
+        - label: I removed private keys and secrets from everything above.
+          required: true
