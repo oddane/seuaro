@@ -26,7 +26,10 @@
 | `docs/architecture/ADR-0002-native-asset-seu.md` / `ADR-0003-fees-and-sponsorship.md` | SEU supply, allocation, staking rewards; fees and gas sponsorship |
 | `.github/workflows/ci.yml` | Runs all of the above on every push |
 
-## Run it locally
+## Run it
+**Fastest:** see [RUNNING.md](RUNNING.md): `scripts/quickstart.sh` (build from source) or `scripts/quickstart.sh --image …` (published image, no compiling).
+
+## Run it locally (single-process devnet)
 Requirements: Linux or macOS, ~16 GB RAM, ~60 GB free disk, [rustup](https://rustup.rs), `clang`, `cmake`, `pkg-config`, `libssl-dev`, `libpq-dev`, `zstd`, `python3`. The first build takes 30–90 minutes.
 
 ```bash

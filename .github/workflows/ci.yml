@@ -168,3 +168,32 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: network-logs, path: ci-artifacts, retention-days: 14 }
+
+  # Publishes the tested node image so anyone can run the testnet without
+  # compiling. Only on manual runs or pushes to main, and only after the
+  # container network and fault tests pass.
+  publish:
+    needs: network
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: bin, path: bin }
+      - run: chmod +x bin/seuaro bin/seuaro-node bin/seuaro-faucet bin/seuaro-verify
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and push
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          img="ghcr.io/$owner/seuaro-node"
+          docker build -f docker/Dockerfile \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            -t "$img:${{ github.sha }}" -t "$img:testnet" .
+          docker push "$img:${{ github.sha }}"
+          docker push "$img:testnet"
+          echo "Published $img:testnet ($img:${{ github.sha }})" >> "$GITHUB_STEP_SUMMARY"

@@ -14,6 +14,14 @@ upstream release recorded in UPSTREAM.lock and applies the modifications listed
 in patches/ and docs/architecture/FORK-DELTA.md. Upstream copyright and license
 notices are retained in the upstream source files.
 
+The upstream source includes the Move language implementation, originally
+developed by The Diem Core Contributors and Facebook, Inc. (now Meta
+Platforms, Inc.), licensed under the Apache License, Version 2.0. Their
+copyright notices are retained in the affected source files.
+
+A license sweep of the pinned upstream tree is recorded in
+docs/legal/LICENSE-AUDIT.md.
+
 Upstream Sui documentation is licensed under the Creative Commons Attribution
 4.0 International license (CC BY 4.0). Where Seuaro documentation adapts it,
 the source is credited in place.
