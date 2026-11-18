@@ -37,6 +37,8 @@ fun withdraw(sc: &mut Scenario, amount: u64): u64 {
     destroy(c);
     sc.return_to_sender(cap);
     ts::return_shared(v);
+    // A returned shared object is only visible again in the next transaction.
+    sc.next_tx(ADMIN);
     got
 }
 
