@@ -104,7 +104,7 @@ pass "F3: chain live during v1 partition; v1 caught up after reconnect"
 
 # --- F4: restarts across epoch changes ----------------------------------------------
 epoch0="$(metric fullnode current_epoch)"
-for i in 1 2 3 4 5 6; do
+for _ in 1 2 3 4 5 6; do
   "${COMPOSE[@]}" restart -t 3 v2 >/dev/null
   sleep 10
 done
