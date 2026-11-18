@@ -4,6 +4,11 @@
 # The base must match the glibc of the machine that built bin/ (CI: ubuntu-24.04).
 FROM ubuntu:24.04
 
+LABEL org.opencontainers.image.title="Seuaro node" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.source="https://github.com/oddane/seuaro" \
+      org.opencontainers.image.description="Seuaro testnet node. Unaudited; see DISCLAIMER.md."
+
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates python3 python3-yaml libpq5 curl \
  && rm -rf /var/lib/apt/lists/* \
@@ -11,7 +16,8 @@ RUN apt-get update \
  && mkdir -p /opt/sui/key-pairs /opt/sui/db /opt/sui/checkpoints /ceremony /users \
  && chown -R sui:sui /opt/sui /ceremony /users
 
-COPY bin/sui bin/sui-node bin/sui-faucet bin/seuaro-verify /usr/local/bin/
+COPY bin/seuaro bin/seuaro-node bin/seuaro-faucet bin/seuaro-verify /usr/local/bin/
+COPY LICENSE NOTICE bin/THIRD-PARTY-LICENSES.md /usr/share/doc/seuaro/
 COPY docker/entrypoint.py /usr/local/bin/seuaro-entrypoint
 COPY UPSTREAM.lock /opt/sui/UPSTREAM.lock
 

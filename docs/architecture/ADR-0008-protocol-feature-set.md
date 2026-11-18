@@ -12,7 +12,7 @@ v0.4 required two things: (1) zero local changes to upstream code, and (2) addre
 4. **Disabling a feature now means losing fixes.** Address balances have been on Sui mainnet since protocol v124. The fixes for the May 2026 halts are gated at v126 (gas-underflow early exit) and v127 (`always_advance_dkg_to_resolution`). Pinning an older version would drop those fixes. Turning the features off at v136 would require a source patch.
 
 ## Decision
-Every Seuaro node runs with `SUI_PROTOCOL_CONFIG_CHAIN_OVERRIDE=mainnet`. The protocol behavior is therefore **identical to Sui mainnet at the same protocol version**, with zero source changes.
+Every Seuaro node runs with `SUI_PROTOCOL_CONFIG_CHAIN_OVERRIDE=mainnet`. The protocol behavior is therefore **identical to Sui mainnet at the same protocol version**. *(Amended: the only source changes are the branding patches in FORK-DELTA D1/D9/D10, which change no protocol logic.)*
 
 Rationale under PROVEN-TECHNIQUES.md: the proven artifact is *the configuration Sui mainnet actually runs*, with its fixes. A hand-picked subset (mainnet minus some features) is a combination nobody runs in production, which makes it P0 under our own policy.
 

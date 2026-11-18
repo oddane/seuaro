@@ -1,0 +1,19 @@
+diff --git a/crates/sui-framework/packages/sui-framework/sources/sui.move b/crates/sui-framework/packages/sui-framework/sources/sui.move
+index 28c33f09..8b632bb0 100644
+--- a/crates/sui-framework/packages/sui-framework/sources/sui.move
++++ b/crates/sui-framework/packages/sui-framework/sources/sui.move
+@@ -37,10 +37,10 @@ fun new(ctx: &mut TxContext): Balance<SUI> {
+     let (treasury, metadata) = coin::create_currency(
+         SUI {},
+         9,
+-        b"SUI",
+-        b"Sui",
+-        // TODO: add appropriate description and logo url
+-        b"",
++        // Seuaro patch 0001: display metadata of the native coin.
++        b"SEU",
++        b"Seuaro",
++        b"Native coin of the Seuaro network",
+         option::none(),
+         ctx,
+     );
