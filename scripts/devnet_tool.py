@@ -32,6 +32,27 @@ def check_config(config_dir):
     print(f"[seuaro] {len(files)} node configs checked: no Sui key-value store fallback")
 
 
+KV_BLOCK = re.compile(
+    r"(transaction[-_]kv[-_]store[-_]read[-_]config:[ \t]*\n(?:[ \t]+[^\n]*\n)*?[ \t]+base[-_]url:[ \t]*)(\S+)")
+
+
+def scrub_config(config_dir):
+    """Blank the upstream default that points nodes at Sui mainnet's KV store.
+
+    Upstream node configs default transaction_kv_store_read_config.base_url to
+    https://transactions.sui.io/. With the mainnet chain override (ADR-0008)
+    a node would fall back to Sui mainnet data for anything missing locally.
+    """
+    changed = 0
+    for f in sorted(p for p in Path(config_dir).glob("*.yaml") if p.name != "client.yaml"):
+        text = f.read_text()
+        new, n = KV_BLOCK.subn(lambda m: m.group(1) + '""', text)
+        if n:
+            f.write_text(new)
+            changed += n
+    print(f"[seuaro] blanked {changed} key-value store fallback URL(s)")
+
+
 def _walk(obj):
     if isinstance(obj, dict):
         yield obj
@@ -142,6 +163,7 @@ def event_field(path, event_substr, key):
 
 COMMANDS = {
     "check-config": check_config,
+    "scrub-config": scrub_config,
     "largest-coin": largest_coin,
     "coins": coins,
     "tx-digest": tx_digest,
