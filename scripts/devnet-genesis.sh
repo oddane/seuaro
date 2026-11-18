@@ -26,5 +26,6 @@ log "creating genesis: $validators validators, epoch ${epoch_ms} ms"
   || { tail -50 "$LOG_DIR/genesis.log" >&2; die "genesis failed"; }
 
 [[ -f "$CONFIG_DIR/genesis.blob" ]] || die "genesis.blob not produced"
+python3 -I "$SEUARO_ROOT/scripts/devnet_tool.py" scrub-config "$CONFIG_DIR"
 python3 -I "$SEUARO_ROOT/scripts/devnet_tool.py" check-config "$CONFIG_DIR"
 log "genesis ready in $CONFIG_DIR (keys inside; never commit this directory)"
