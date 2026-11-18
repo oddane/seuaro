@@ -12,8 +12,8 @@ mkdir -p "$BIN_DIR"
 profile="release"
 target_dir="${CARGO_TARGET_DIR:-$UPSTREAM_DIR/target}/$profile"
 
-log "building upstream sui + sui-node ($profile, --locked)"
-( cd "$UPSTREAM_DIR" && cargo build --locked --profile "$profile" -p sui -p sui-node )
+log "building upstream sui + sui-node + sui-faucet ($profile, --locked)"
+( cd "$UPSTREAM_DIR" && cargo build --locked --profile "$profile" -p sui -p sui-node -p sui-faucet )
 
 restore_upstream() {
   git -C "$UPSTREAM_DIR" checkout -q -- Cargo.toml Cargo.lock
@@ -37,7 +37,7 @@ deleted="$(git -C "$UPSTREAM_DIR" diff --numstat -- Cargo.lock | awk '{s+=$2} EN
 [[ "$deleted" == "0" ]] \
   || { git -C "$UPSTREAM_DIR" diff -- Cargo.lock | head -50 >&2; die "seuaro-verify changed upstream dependency versions"; }
 
-for b in sui sui-node seuaro-verify; do
+for b in sui sui-node sui-faucet seuaro-verify; do
   install -m 0755 "$target_dir/$b" "$BIN_DIR/$b"
 done
 

@@ -17,3 +17,6 @@ sui.keystore
 # Move build output
 packages/*/build/
 packages/*/Move.lock
+
+# Container testnet state
+/net/

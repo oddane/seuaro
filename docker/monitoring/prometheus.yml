@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 5s
+scrape_configs:
+  - job_name: validators
+    static_configs:
+      - targets: ["v1:9184", "v2:9184", "v3:9184", "v4:9184"]
+  - job_name: fullnode
+    static_configs:
+      - targets: ["fullnode:9184"]

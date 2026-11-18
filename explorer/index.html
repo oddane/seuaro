@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seuaro Explorer</title>
+<style>
+  :root { --bg:#0f1419; --card:#171d24; --line:#263039; --text:#e6edf3; --muted:#8b98a5; --accent:#4fb3ff; --ok:#3fb950; --bad:#f85149; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:16px 20px; border-bottom:1px solid var(--line); display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:10px; background:#3a2a00; color:#f0c000; }
+  form { margin-left:auto; display:flex; gap:8px; flex:1; max-width:560px; }
+  input { flex:1; padding:8px 10px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); font-family:ui-monospace, monospace; }
+  button { padding:8px 14px; border-radius:6px; border:0; background:var(--accent); color:#00121f; font-weight:600; cursor:pointer; }
+  main { padding:20px; display:grid; gap:16px; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px 16px; overflow:auto; }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 10px; }
+  .wide { grid-column:1 / -1; }
+  .stats { display:flex; gap:24px; flex-wrap:wrap; }
+  .stat b { display:block; font-size:22px; }
+  .stat span { color:var(--muted); font-size:12px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--muted); font-weight:500; }
+  .mono { font-family:ui-monospace, monospace; }
+  a { color:var(--accent); text-decoration:none; cursor:pointer; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); } .muted { color:var(--muted); }
+  pre { margin:0; font-size:12px; white-space:pre-wrap; word-break:break-all; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Seuaro Explorer</h1><span class="badge">TESTNET · no real value</span>
+  <form id="search"><input id="q" placeholder="Transaction digest, address or object ID" autocomplete="off"><button>Search</button></form>
+</header>
+<main>
+  <section class="card wide"><h2>Network</h2><div class="stats" id="stats">Loading…</div></section>
+  <section class="card"><h2>Latest checkpoints</h2><div id="checkpoints"></div></section>
+  <section class="card"><h2>Validators</h2><div id="validators"></div></section>
+  <section class="card wide" id="detail-card" hidden><h2 id="detail-title">Detail</h2><div id="detail"></div></section>
+</main>
+<script>
+"use strict";
+// Display only. Final settlement must be checked with seuaro-verify, which
+// verifies checkpoint certificates instead of trusting this RPC.
+let rpcId = 0;
+async function rpc(method, params = []) {
+  const res = await fetch("/rpc", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: ++rpcId, method, params }) });
+  const body = await res.json();
+  if (body.error) throw new Error(body.error.message || JSON.stringify(body.error));
+  return body.result;
+}
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === "onclick") e.onclick = v; else e.setAttribute(k, v); }
+  for (const k of kids) e.append(k instanceof Node ? k : document.createTextNode(String(k ?? "")));
+  return e;
+};
+const short = (s) => s && s.length > 20 ? s.slice(0, 10) + "…" + s.slice(-6) : (s ?? "");
+const link = (text, fn) => el("a", { onclick: (ev) => { ev.preventDefault(); fn(); } }, text);
+const sui = (mist) => (Number(BigInt(mist ?? 0) / 1000000n) / 1000).toLocaleString() + " SUI";
+const age = (ms) => { const s = Math.max(0, Math.round((Date.now() - Number(ms)) / 1000)); return s < 60 ? s + "s ago" : Math.round(s / 60) + "m ago"; };
+function table(headers, rows) {
+  return el("table", {}, el("tr", {}, ...headers.map(h => el("th", {}, h))),
+    ...rows.map(r => el("tr", {}, ...r.map(c => el("td", {}, c)))));
+}
+function showDetail(title, node) {
+  document.getElementById("detail-title").textContent = title;
+  const d = document.getElementById("detail"); d.replaceChildren(node);
+  document.getElementById("detail-card").hidden = false;
+  document.getElementById("detail-card").scrollIntoView({ behavior: "smooth" });
+}
+
+async function refresh() {
+  try {
+    const [chain, latest, state] = await Promise.all([
+      rpc("sui_getChainIdentifier"), rpc("sui_getLatestCheckpointSequenceNumber"), rpc("suix_getLatestSuiSystemState")]);
+    const stat = (v, l) => el("div", { class: "stat" }, el("b", {}, v), el("span", {}, l));
+    document.getElementById("stats").replaceChildren(
+      stat(chain, "Chain ID"), stat(Number(latest).toLocaleString(), "Latest checkpoint"),
+      stat(state.epoch, "Epoch"), stat(state.protocolVersion, "Protocol version"),
+      stat(state.activeValidators.length, "Validators"), stat(sui(state.totalStake), "Total stake"));
+
+    const top = Number(latest), ids = [];
+    for (let i = top; i > Math.max(-1, top - 10); i--) ids.push(String(i));
+    const cps = await Promise.all(ids.map(id => rpc("sui_getCheckpoint", [id])));
+    document.getElementById("checkpoints").replaceChildren(table(["#", "Epoch", "Txs", "Age"],
+      cps.map(c => [link(c.sequenceNumber, () => openCheckpoint(c)), c.epoch, c.transactions.length, age(c.timestampMs)])));
+
+    document.getElementById("validators").replaceChildren(table(["Name", "Address", "Stake"],
+      state.activeValidators.map(v => [v.name, el("span", { class: "mono" }, short(v.suiAddress)), sui(v.stakingPoolSuiBalance)])));
+  } catch (e) {
+    document.getElementById("stats").replaceChildren(el("span", { class: "bad" }, "RPC unavailable: " + e.message));
+  }
+}
+
+function openCheckpoint(c) {
+  showDetail("Checkpoint " + c.sequenceNumber, el("div", {},
+    el("p", { class: "mono" }, "Digest: " + c.digest),
+    table(["Transaction"], c.transactions.map(t => [link(t, () => openTx(t))]))));
+}
+
+async function openTx(digest) {
+  const tx = await rpc("sui_getTransactionBlock", [digest, { showInput: true, showEffects: true, showEvents: true, showBalanceChanges: true }]);
+  const st = tx.effects?.status?.status;
+  showDetail("Transaction", el("div", {},
+    el("p", { class: "mono" }, digest),
+    el("p", {}, "Status: ", el("span", { class: st === "success" ? "ok" : "bad" }, st), "  ·  Checkpoint: ", tx.checkpoint ?? "pending",
+      "  ·  Sender: ", el("span", { class: "mono" }, tx.transaction?.data?.sender ?? "")),
+    el("h2", {}, "Balance changes"),
+    table(["Owner", "Coin", "Amount"], (tx.balanceChanges || []).map(b =>
+      [el("span", { class: "mono" }, short(JSON.stringify(b.owner))), short(b.coinType), b.amount])),
+    el("h2", {}, "Events"),
+    el("pre", {}, JSON.stringify((tx.events || []).map(e => ({ type: e.type, data: e.parsedJson })), null, 2)),
+    el("p", { class: "muted" }, "Shown from the full node. For settlement, verify with seuaro-verify.")));
+}
+
+async function openAddress(addr) {
+  const [bal, owned] = await Promise.all([
+    rpc("suix_getAllBalances", [addr]), rpc("suix_getOwnedObjects", [addr, { options: { showType: true } }, null, 20])]);
+  showDetail("Address", el("div", {}, el("p", { class: "mono" }, addr),
+    table(["Coin", "Balance"], bal.map(b => [short(b.coinType), b.totalBalance])),
+    el("h2", {}, "Objects"),
+    table(["Object", "Type"], owned.data.map(o => [el("span", { class: "mono" }, short(o.data?.objectId)), short(o.data?.type)]))));
+}
+
+async function openObject(id) {
+  const o = await rpc("sui_getObject", [id, { showType: true, showOwner: true, showContent: true }]);
+  if (o.error) throw new Error("not an object");
+  showDetail("Object", el("pre", {}, JSON.stringify(o.data, null, 2)));
+}
+
+document.getElementById("search").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const q = document.getElementById("q").value.trim();
+  if (!q) return;
+  try {
+    if (!q.startsWith("0x")) return await openTx(q);
+    try { await openObject(q); } catch { await openAddress(q); }
+  } catch (e) { showDetail("Not found", el("p", { class: "bad" }, e.message)); }
+};
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
