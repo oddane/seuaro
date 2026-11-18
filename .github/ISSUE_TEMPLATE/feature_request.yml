@@ -1,0 +1,31 @@
+name: Feature request
+description: Propose a change or new capability.
+title: "[Feature]: "
+labels: ["type: feature", "status: triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this solve, and for whom?
+    validations: { required: true }
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+    validations: { required: true }
+  - type: dropdown
+    id: maturity
+    attributes:
+      label: Maturity of the technique (docs/architecture/PROVEN-TECHNIQUES.md)
+      options: ["P3 - proven (≥ 2 years in production)", "P2 - established", "P1 - standardized, not production-proven", "P0 - new / research", "Not sure"]
+    validations: { required: true }
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Production evidence
+      description: Where has this run in production, for how long, and with what incidents?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

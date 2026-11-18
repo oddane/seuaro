@@ -59,5 +59,15 @@ scripts/net-down.sh             # stop, keep state (restart: scripts/net-up.sh -
 scripts/net-down.sh --wipe      # stop and delete all state and keys
 ```
 
+## Single-process devnet (development)
+A lighter setup that runs all four validators and a full node in one process, used by the Phase 1 tests:
+```bash
+scripts/build.sh
+scripts/devnet-genesis.sh && scripts/devnet-up.sh
+tests/phase1.sh            # acceptance tests
+tests/payments-devnet.sh   # publish and exercise the payment contracts
+scripts/devnet-down.sh
+```
+
 ## Exposing it beyond your machine
 Every port binds to `127.0.0.1` on purpose. Before opening anything to the internet, put the RPC behind a reverse proxy with TLS and rate limits, never expose validator ports other than consensus/p2p, and read SECURITY.md and docs/legal/COUNSEL-CHECKLIST.md (running a public faucet or RPC can carry legal obligations).

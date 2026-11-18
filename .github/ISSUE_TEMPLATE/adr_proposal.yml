@@ -1,0 +1,20 @@
+name: Architecture decision (ADR) proposal
+description: Propose a decision that changes design, economics or security properties.
+title: "[ADR]: "
+labels: ["type: adr", "status: triage"]
+body:
+  - type: textarea
+    id: context
+    attributes: { label: Context, description: "What forces this decision? Link evidence." }
+    validations: { required: true }
+  - type: textarea
+    id: decision
+    attributes: { label: Proposed decision }
+    validations: { required: true }
+  - type: textarea
+    id: invariants
+    attributes: { label: Affected invariants and launch gates, description: "e.g. LEDGER-05, G2" }
+  - type: textarea
+    id: consequences
+    attributes: { label: Consequences and risks }
+    validations: { required: true }
