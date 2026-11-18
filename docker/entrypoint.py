@@ -55,9 +55,9 @@ def die(msg):
     sys.exit(1)
 
 
-def run(*cmd, cwd=None):
+def run(*cmd, cwd=None, env=None):
     log("$ " + " ".join(cmd))
-    res = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    res = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True)
     if res.returncode != 0:
         sys.stderr.write(res.stdout + res.stderr)
         die(f"command failed ({res.returncode}): {cmd[0]} {cmd[1] if len(cmd) > 1 else ''}")
@@ -76,10 +76,24 @@ def ceremony(*args):
     return run("sui", "genesis-ceremony", "--path", CEREMONY, *args)
 
 
+def scratch_client_config(root):
+    """Minimal client config so the CLI neither prompts nor creates (and prints) a key."""
+    cfg = os.path.join(root, "client-config")
+    os.makedirs(cfg, exist_ok=True)
+    with open(os.path.join(cfg, "sui.keystore"), "w") as f:
+        f.write("[]")
+    with open(os.path.join(cfg, "client.yaml"), "w") as f:
+        f.write(f"keystore:\n  File: {cfg}/sui.keystore\nexternal_keys: ~\nenvs:\n"
+                "  - alias: local\n    rpc: http://127.0.0.1:9000\n    ws: ~\n    basic_auth: ~\n"
+                "active_env: local\nactive_address: ~\n")
+    return dict(os.environ, SUI_CONFIG_DIR=cfg)
+
+
 def gen_key(scheme):
     """Generate a key with `sui keytool`; returns (address, base64 file content)."""
-    with tempfile.TemporaryDirectory() as d:
-        run("sui", "keytool", "generate", scheme, "--json", cwd=d)
+    with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as cfg_root:
+        run("sui", "keytool", "generate", scheme, "--json", cwd=d,
+            env=scratch_client_config(cfg_root))
         files = glob.glob(os.path.join(d, "*.key"))
         if len(files) != 1:
             die(f"expected one key file from keytool, found {files}")
