@@ -50,6 +50,14 @@ run publish test-publish --build-env testnet --pubfile-path "$WORK/Pub.devnet.to
 PKG="$("${TOOL[@]}" package-id "$WORK/publish.json")"
 pass "published seuaro_payments at $PKG (FINAL)"
 
+# Genesis gives each account one coin; each escrow consumes a whole coin as
+# payment and a different one as gas, so split buyer funds into 4 x 1 SEU.
+mapfile -t C < <(coins_of "$BUYER")
+run split pay-sui --input-coins "${C[0]}" \
+  --recipients "$BUYER" "$BUYER" "$BUYER" "$BUYER" \
+  --amounts 1000000000 1000000000 1000000000 1000000000
+pass "split buyer funds into payment coins (FINAL)"
+
 new_escrow() { # name -> prints escrow id; buyer pays with their second-largest coin
   local name="$1"; as "$BUYER"
   mapfile -t C < <(coins_of "$BUYER")
