@@ -30,9 +30,9 @@ transfer() {
     CFG=/users/buyer/client.yaml
     T="python3 -I /scripts/devnet_tool.py"
     M=$(python3 -I -c "import json; print(json.load(open(\"/users/addresses.json\"))[\"merchant\"])")
-    sui client --client.config $CFG gas --json > /tmp/gas.json
+    seuaro client --client.config $CFG gas --json > /tmp/gas.json
     COIN=$($T largest-coin /tmp/gas.json)
-    timeout '"$t"' sui client --client.config $CFG pay-sui --input-coins $COIN \
+    timeout '"$t"' seuaro client --client.config $CFG pay-sui --input-coins $COIN \
       --recipients $M --amounts 1000 --gas-budget 50000000 --json > /tmp/pay.json
     $T tx-succeeded /tmp/pay.json >/dev/null
     $T tx-digest /tmp/pay.json'

@@ -31,6 +31,13 @@ jobs:
           python3 -I -m py_compile scripts/devnet_tool.py
           python3 -m py_compile docker/entrypoint.py
           python3 -I -m py_compile scripts/decentralization-report.py
+          python3 -I -m py_compile scripts/third-party-licenses.py
+      - name: Legal files present
+        run: |
+          for f in LICENSE NOTICE TRADEMARKS.md DISCLAIMER.md SECURITY.md CONTRIBUTING.md; do
+            test -s "$f" || { echo "::error::missing $f"; exit 1; }
+          done
+          ls patches/*.patch
       - name: Compose file
         run: docker compose -f docker/compose.yaml --profile tools config -q
       - name: No secrets or network state committed
@@ -83,8 +90,8 @@ jobs:
           export SUI_CONFIG_DIR="$RUNNER_TEMP/sui-config"
           mkdir -p "$SUI_CONFIG_DIR" && echo '[]' > "$SUI_CONFIG_DIR/sui.keystore"
           printf 'keystore:\n  File: %s/sui.keystore\nexternal_keys: ~\nenvs:\n  - alias: testnet\n    rpc: http://127.0.0.1:9000\n    ws: ~\n    basic_auth: ~\nactive_env: testnet\nactive_address: ~\n' "$SUI_CONFIG_DIR" > "$SUI_CONFIG_DIR/client.yaml"
-          bin/sui move test -e testnet --path packages/seuaro_payments
-          bin/sui move test -e testnet --path packages/seuaro_compute
+          bin/seuaro move test -e testnet --path packages/seuaro_payments
+          bin/seuaro move test -e testnet --path packages/seuaro_compute
       - uses: actions/upload-artifact@v4
         with:
           name: bin
@@ -161,3 +168,32 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: network-logs, path: ci-artifacts, retention-days: 14 }
+
+  # Publishes the tested node image so anyone can run the testnet without
+  # compiling. Only on manual runs or pushes to main, and only after the
+  # container network and fault tests pass.
+  publish:
+    needs: network
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: bin, path: bin }
+      - run: chmod +x bin/seuaro bin/seuaro-node bin/seuaro-faucet bin/seuaro-verify
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and push
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          img="ghcr.io/$owner/seuaro-node"
+          docker build -f docker/Dockerfile \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            -t "$img:${{ github.sha }}" -t "$img:testnet" .
+          docker push "$img:${{ github.sha }}"
+          docker push "$img:testnet"
+          echo "Published $img:testnet ($img:${{ github.sha }})" >> "$GITHUB_STEP_SUMMARY"

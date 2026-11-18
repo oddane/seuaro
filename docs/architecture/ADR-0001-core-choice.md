@@ -44,8 +44,8 @@
 ## Open ADRs required by gate G0
 | ADR | Topic | Status |
 |---|---|---|
-| ADR-0002 | Native asset, supply, emissions | Open |
-| ADR-0003 | Gas/fee economics and spam pricing | Open |
+| ADR-0002 | Native asset: Seuaro (SEU), fixed 10B supply, allocation, staking rewards | Proposed |
+| ADR-0003 | Fees: upstream gas model, sponsorship, gas station | Proposed |
 | ADR-0004 | Validator admission and stake caps | **Accepted (testnets)** |
 | ADR-0005 | Upgrade authorization, timelocks, emergency halt | Open |
 | ADR-0006 | Payment settlement semantics and merchant finality UX | Open |

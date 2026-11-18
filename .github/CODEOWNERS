@@ -1,0 +1,11 @@
+# Default owner for everything.
+*                       @oddane
+
+# Two-reviewer areas (see CONTRIBUTING.md). Add a second owner here as the team grows.
+/UPSTREAM.lock          @oddane
+/patches/               @oddane
+/tools/seuaro-verify/   @oddane
+/packages/              @oddane
+/docker/entrypoint.py   @oddane
+/docs/architecture/     @oddane
+/.github/workflows/     @oddane
