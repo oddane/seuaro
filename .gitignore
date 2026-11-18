@@ -1,0 +1,15 @@
+# Upstream checkout and build output (fetched by scripts/fetch-upstream.sh)
+/upstream/
+/target/
+/tools/*/target/
+
+# Local devnet state: contains private keys. Never commit.
+/devnet/
+*.keystore
+sui.keystore
+*.key
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/

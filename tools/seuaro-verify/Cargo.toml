@@ -1,0 +1,19 @@
+[package]
+name = "seuaro-verify"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+description = "Seuaro finality verifier: checks checkpoint certificates, committee hand-offs and transaction inclusion from genesis, trusting nothing but the genesis blob."
+
+# This crate is built *inside* the pinned upstream Sui workspace by
+# scripts/build.sh, so every dependency resolves to the exact upstream version.
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+prost.workspace = true
+serde_json.workspace = true
+zstd.workspace = true
+sui-config.workspace = true
+sui-rpc.workspace = true
+sui-types.workspace = true
