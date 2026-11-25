@@ -2,7 +2,7 @@
 # plus the Seuaro entrypoint. Build context is the repository root:
 #   docker build -f docker/Dockerfile -t seuaro/node:local .
 # The base must match the glibc of the machine that built bin/ (CI: ubuntu-24.04).
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 LABEL org.opencontainers.image.title="Seuaro node" \
       org.opencontainers.image.licenses="Apache-2.0" \
